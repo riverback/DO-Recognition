@@ -308,7 +308,7 @@ class BasicNet(nn.Module):
         super(BasicNet, self).__init__()
         self.extractor = ResNet(BasicBlock, [3,4,6,3], in_channels, num_classes, down=down)
         self.pool = nn.AdaptiveAvgPool2d(1)
-        self.classifier = nn.Conv2d(512, 2, 1, 1, padding=0)
+        self.classifier = nn.Conv2d(512, num_classes, 1, 1, padding=0)
     
     
     def forward(self, x):

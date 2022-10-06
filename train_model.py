@@ -174,8 +174,9 @@ def test_and_generate_cams(model:Optional[BasicNet or nn.Module],
             labels = labels.to(device)
             
             logits, probs = cam_computer.forward(images)
-            cam_computer.backward(logits.argmax(dim=1))
-            batch_cams = cam_computer.generate('layer2')
+            
+            cam_computer.backward(ids=labels)
+            batch_cams = cam_computer.generate(target_layer)
             if cams is None:
                 cams = torch.cat((images, masks, batch_cams), dim=1)
             else:
@@ -261,13 +262,13 @@ def train_extractor(model:Optional[BasicNet or nn.Module],
 if __name__ == '__main__':
     
     # general parameters
-    num_classes = 2
-    num_epochs = 80
+    num_classes = 3
+    num_epochs = 100
     val_interval = 1
-    lr = 2e-3
+    lr = 4e-3
     
     # experiment tag
-    experiment_tag = 'pre-AdamW_with_scheduler_warmup2e-1'
+    experiment_tag = 'class_3_train_model-4e-3'
     saved_checkpoint_folder = os.path.join('saved_checkpoints', experiment_tag)
     
     # set Logger
@@ -296,9 +297,9 @@ if __name__ == '__main__':
     model = BasicNet(1, num_classes, False).to(device)
     
     # set dataloader
-    train_loader = get_loader('Data/OLF_spines/OLF_train.txt', 'train', 0.5, 128, 16, 'OLF_Dataset')
-    val_loader = get_loader('Data/OLF_spines/OLF_val.txt', 'val', 0.5, 128, 16, 'OLF_Dataset')
-    test_loader = get_loader('Data/OLF_spines/OLF_test.txt', 'test', 0.5, 128, 16, 'OLF_Dataset')
+    train_loader = get_loader('Data/Inexact_spines/Spine_train.txt', 'train', 0.5, 128, 16, 'Spine_Dataset')
+    val_loader = get_loader('Data/Inexact_spines/Spine_val.txt', 'val', 0.5, 128, 16, 'Spine_Dataset')
+    test_loader = get_loader('Data/Inexact_spines/Spine_test.txt', 'test', 0.5, 128, 16, 'Spine_Dataset')
     
     # set optimizer
     optimizer = AdamW(params=model.parameters(),

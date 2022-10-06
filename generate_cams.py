@@ -36,8 +36,7 @@ def visulization_cams(model:BasicNet,
         cam_i = cams[i][2].numpy()
         
         # generate heat map
-        heat_img = np.zeros(cam_i.shape)
-        heat_img = cv2.normalize(cam_i, heat_img, 0, 255, cv2.NORM_MINMAX)
+        heat_img = cam_i*255
         heat_img = heat_img.astype(np.uint8)
         
         heat_img = cv2.applyColorMap(heat_img, cv2.COLORMAP_JET)
@@ -59,9 +58,9 @@ def visulization_cams(model:BasicNet,
         cv2.imwrite(os.path.join(vis_folder, '{:04d}_all.png'.format(i)), 
                     np.concatenate((cv2.resize(img_i, (256, 256)), cv2.resize(heat_img, (256, 256)), cv2.resize(mask_i, (256, 256)), cv2.resize(img_add, (256, 256))), axis=1))
 
-def main(target_layer:str, checkpoint_path:str, device_idx:int):
+def main(target_layer:str, checkpoint_path:str, device_idx:int, num_classes:int):
     
-    num_classes = 2
+    num_classes = num_classes
     
     vis_folder = checkpoint_path.split('/')[0] + '/' + checkpoint_path.split('/')[1] + '/' + 'cams_vis' + '/{}'.format(target_layer)
     if not os.path.exists(vis_folder):
@@ -94,10 +93,10 @@ def main(target_layer:str, checkpoint_path:str, device_idx:int):
 if __name__ == '__main__':
     
     target_layers = ['layer1', 'layer2', 'layer3', 'layer4']    
-    checkpoint_path = 'saved_checkpoints/pre-AdamW_with_scheduler_warmup2e-1/val-best-11.pt'
+    checkpoint_path = 'saved_checkpoints/class_3_train_model-1e-3/val-best-28.pt'
     device_idx = 7
     
     
     for target_layer in target_layers:
-        main(target_layer, checkpoint_path, device_idx)
+        main(target_layer, checkpoint_path, device_idx, 3)
 

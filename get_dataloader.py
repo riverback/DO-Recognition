@@ -86,14 +86,15 @@ def get_loader(file_path, mode, aug_prob, batch_size, num_workers, dataset_type=
     else:
         shuffle = False
         
-    if dataset_type == 'OLF_Dataset':
+    if dataset_type == 'OLF_Dataset' or 'Spine_Dataset':
         data_loader = DataLoader(
             dataset=OLF_Dataset(file_path, mode, aug_prob),
             batch_size=batch_size,
             num_workers=num_workers,
             shuffle=shuffle,
             collate_fn=id_collate)
-    elif dataset_type == 'DO_Dataset':
+    elif dataset_type == 'MIL_Dataset':
+        # for Multi Instance Learning
         raise NotImplementedError()
     else:
         raise NotImplementedError()
