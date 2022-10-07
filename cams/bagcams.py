@@ -12,8 +12,8 @@ class GradCAM(_BaseWrapper):
 
     def __init__(self, extractor, classifier, candidate_layers=None):
         super(GradCAM, self).__init__(extractor, classifier)
-        self.fmap_pool = {}
-        self.grad_pool = {}
+        self.fmap_pool = {} # feature map dict
+        self.grad_pool = {} # gradients dict
         self.candidate_layers = candidate_layers  # list
 
         def save_fmaps(key):
