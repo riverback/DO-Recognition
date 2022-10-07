@@ -92,11 +92,13 @@ def main(target_layer:str, checkpoint_path:str, device_idx:int, num_classes:int)
 
 if __name__ == '__main__':
     
-    target_layers = ['layer1', 'layer2', 'layer3', 'layer4']    
-    checkpoint_path = 'saved_checkpoints/class_3_train_model-1e-3/val-best-28.pt'
+    num_classes = 2
+    target_layers = ['layer1', 'layer2', 'layer1.0', 'layer1.1', 'layer1.2', 'layer2.0', 'layer2.1', 'layer2.2', 'layer2.3', 'layer3', 'layer4']    
+    checkpoint_path = 'saved_checkpoints/pre-AdamW_with_scheduler_warmup2e-1/val-best-12.pt'
     device_idx = 7
     
     
     for target_layer in target_layers:
-        main(target_layer, checkpoint_path, device_idx, 3)
+        print('target layer: {}'.format(target_layer))
+        main(target_layer, checkpoint_path, device_idx, num_classes)
 
