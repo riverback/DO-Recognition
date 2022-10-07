@@ -6,7 +6,7 @@ import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot as plt
 from typing import Optional
-
+from torch.nn import functional as F
 import torch
 from torch import nn
 from torch.nn import CrossEntropyLoss, BCELoss
@@ -16,10 +16,20 @@ from transformers import AdamW, get_cosine_schedule_with_warmup
 
 from get_dataloader import get_loader
 from resnet_models import BasicNet
-from cams.bagcams import BagCAMs
+from cams.bagcams import BagCAMs, GradCAM
 from Logger import Logger
 
 import torchmetrics
+
+
+def normalize_tensor(x):
+    channel_vector = x.view(x.size()[0], x.size()[1], -1)
+    minimum, _ = torch.min(channel_vector, dim=-1, keepdim=True)
+    maximum, _ = torch.max(channel_vector, dim=-1, keepdim=True)
+    normalized_vector = torch.div(channel_vector - minimum, maximum - minimum)
+    normalized_tensor = normalized_vector.view(x.size())
+    return normalized_tensor
+
 
 def train_epoch(model:Optional[BasicNet or nn.Module], 
                 device:torch.device, 
@@ -167,16 +177,33 @@ def test_and_generate_cams(model:Optional[BasicNet or nn.Module],
         
         cams = None
         cam_computer = BagCAMs(extractor=model.extractor, classifier=model.classifier)
+        # cam_computer = GradCAM(extractor=model.extractor, classifier=model.classifier)
         
         for batch_idx, ((images, masks, labels), image_ids) in enumerate(test_loader):
             images = images.to(device)
             masks = masks.to(device)
             labels = labels.to(device)
             
+            ###Grad-based CAMs
             logits, probs = cam_computer.forward(images)
-            
             cam_computer.backward(ids=labels)
             batch_cams = cam_computer.generate(target_layer)
+            ###
+            
+            '''
+            ###Original CAMs
+            pixel_features = model.extractor(images)
+            output = model.classifier(pixel_features) # 0-1 mask
+            image_size = images.shape[2:]
+            output = F.interpolate(output, image_size, mode="bilinear", align_corners=False)
+            batch_size = pixel_features.shape[0]
+            normalized = normalize_tensor(output.detach().clone())
+            batch_cams = normalized[range(batch_size), labels].unsqueeze(1)
+            #print(batch_cams.shape, images.shape)
+            #batch_cams = batch_cams.detach().cpu().numpy().astype(np.float)
+            ###
+            '''
+            
             if cams is None:
                 cams = torch.cat((images, masks, batch_cams), dim=1)
             else:

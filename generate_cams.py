@@ -51,11 +51,11 @@ def visulization_cams(model:BasicNet,
         
         img_add = cv2.addWeighted(img_i, 0.5, heat_img, 0.5, 0)
         
-        cv2.imwrite(os.path.join(vis_folder, '{:04d}_img.png'.format(i)), cv2.resize(img_i, (256, 256)))
-        cv2.imwrite(os.path.join(vis_folder, '{:04d}_mask.png'.format(i)), cv2.resize(mask_i, (256, 256)))
-        cv2.imwrite(os.path.join(vis_folder, '{:04d}_heatmap.png'.format(i)), cv2.resize(heat_img, (256, 256)))
-        cv2.imwrite(os.path.join(vis_folder, '{:04d}_img_add.png'.format(i)), cv2.resize(img_add, (256, 256)))
-        cv2.imwrite(os.path.join(vis_folder, '{:04d}_all.png'.format(i)), 
+        # plt.imsave(os.path.join(vis_folder, '{:04d}_img.png'.format(i)), cv2.resize(img_i, (256, 256)))
+        # plt.imsave(os.path.join(vis_folder, '{:04d}_mask.png'.format(i)), cv2.resize(mask_i, (256, 256)))
+        # plt.imsave(os.path.join(vis_folder, '{:04d}_heatmap.png'.format(i)), cv2.resize(heat_img, (256, 256)))
+        # plt.imsave(os.path.join(vis_folder, '{:04d}_img_add.png'.format(i)), cv2.resize(img_add, (256, 256)))
+        plt.imsave(os.path.join(vis_folder, '{:04d}_all.png'.format(i)), 
                     np.concatenate((cv2.resize(img_i, (256, 256)), cv2.resize(heat_img, (256, 256)), cv2.resize(mask_i, (256, 256)), cv2.resize(img_add, (256, 256))), axis=1))
 
 def main(target_layer:str, checkpoint_path:str, device_idx:int, num_classes:int):
