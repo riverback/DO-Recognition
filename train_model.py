@@ -12,10 +12,12 @@ from torch import nn
 from torch.nn import CrossEntropyLoss, BCELoss
 from torch.utils.data import DataLoader
 
+
 from transformers import AdamW, get_cosine_schedule_with_warmup
 
 from get_dataloader import get_loader
 from resnet_models import BasicNet
+from focal_loss import FocalLoss
 from cams.bagcams import BagCAMs, GradCAM
 from Logger import Logger
 
@@ -56,7 +58,7 @@ def train_epoch(model:Optional[BasicNet or nn.Module],
 
         logits, probs = model(images)
         
-        if isinstance(loss_fn, CrossEntropyLoss):
+        if isinstance(loss_fn, CrossEntropyLoss) or isinstance(loss_fn, FocalLoss):
             loss = loss_fn(logits, labels)
         else:
             loss = loss_fn(probs, labels)
@@ -106,7 +108,7 @@ def val(model:Optional[BasicNet or nn.Module],
             
             logits, probs = model(images)
             
-            if isinstance(loss_fn, CrossEntropyLoss):
+            if isinstance(loss_fn, CrossEntropyLoss) or isinstance(loss_fn, FocalLoss):
                 val_loss += loss_fn(logits, labels).item() * len(images)
             else:
                 val_loss += loss_fn(probs, labels).item() * len(images)
@@ -290,19 +292,19 @@ if __name__ == '__main__':
     
     # general parameters
     num_classes = 3
-    num_epochs = 100
+    num_epochs = 300
     val_interval = 1
-    lr = 4e-3
+    lr = 0.9e-3
     
     # experiment tag
-    experiment_tag = 'class_3_train_model-4e-3'
+    experiment_tag = 'class3-celoss-9e-4_2'
     saved_checkpoint_folder = os.path.join('saved_checkpoints', experiment_tag)
     
     # set Logger
     sys.stdout = Logger(os.path.join(saved_checkpoint_folder, 'experiment_log.txt'))
     
     # set random seed
-    seed = 4096
+    seed = 42
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
@@ -327,7 +329,10 @@ if __name__ == '__main__':
     train_loader = get_loader('Data/Inexact_spines/Spine_train.txt', 'train', 0.5, 128, 16, 'Spine_Dataset')
     val_loader = get_loader('Data/Inexact_spines/Spine_val.txt', 'val', 0.5, 128, 16, 'Spine_Dataset')
     test_loader = get_loader('Data/Inexact_spines/Spine_test.txt', 'test', 0.5, 128, 16, 'Spine_Dataset')
-    
+    # train_loader = get_loader('Data/OLF_spines/OLF_train.txt', 'train', 0.5, 128, 16, 'OLF_Dataset')
+    # val_loader = get_loader('Data/OLF_spines/OLF_val.txt', 'val', 0.5, 128, 16, 'OLF_Dataset')
+    # test_loader = get_loader('Data/OLF_spines/OLF_test.txt', 'test', 0.5, 128, 16, 'OLF_Dataset')
+        
     # set optimizer
     optimizer = AdamW(params=model.parameters(),
                       lr=lr,
@@ -343,6 +348,7 @@ if __name__ == '__main__':
                                                    num_training_steps=num_epochs)
     
     loss_fn = CrossEntropyLoss()
+    # loss_fn = FocalLoss(gamma=2., alpha=0.25)
     
     print('lr: {}\nnum_epochs: {}\nseed: {}\nval_interval: {}\nwarm_up_ratio: {}'.format(lr, num_epochs, seed, val_interval, warm_up_ratio))
     
