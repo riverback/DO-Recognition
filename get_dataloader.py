@@ -44,6 +44,9 @@ class OLF_Dataset(Dataset):
     def __getitem__(self, index):
         image_path, label = self.data[index].strip('\n').split()
         image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE) / 255
+        # resize images to 56*56
+        image = np.clip(cv2.resize(image, (56, 56)), 0, 1)
+        
         label = int(label)
         if label == 0: # healthy slices have no masks
             image_id = image_path.strip('.png')[5:].replace('/', '-') # eg. Healthy_spines-005-0112
@@ -51,6 +54,7 @@ class OLF_Dataset(Dataset):
         else:
             image_id = image_path.strip('.png')[5:].replace('/', '-') #eg. OLF_spines-002-T11-OLF-00012
             mask = cv2.imread(image_path.strip('.png')+'-label.png')
+            mask = cv2.resize(mask, (56,56))
             mask = np.where(mask>1, 1, 0)
         
         if self.mode == 'train' and random.random() <= self.aug_prob:

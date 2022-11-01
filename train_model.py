@@ -290,23 +290,22 @@ def train_extractor(model:Optional[BasicNet or nn.Module],
     plt.savefig(os.path.join(saved_checkpoint_folder, 'experiment_log.png'))
     
 
-if __name__ == '__main__':
-    
+def trian(experiment_tag, num_classes=3, num_epochs=100, val_interval=1, lr=1e-3, cuda_idx="2", seed=43):
     # general parameters
-    num_classes = 3
-    num_epochs = 300
-    val_interval = 1
-    lr = 0.9e-3
+    num_classes = num_classes
+    num_epochs = num_epochs
+    val_interval = val_interval
+    lr = lr
     
     # experiment tag
-    experiment_tag = 'class3-celoss-9e-4_2'
+    experiment_tag = experiment_tag
     saved_checkpoint_folder = os.path.join('saved_checkpoints', experiment_tag)
     
     # set Logger
     sys.stdout = Logger(os.path.join(saved_checkpoint_folder, 'experiment_log.txt'))
     
     # set random seed
-    seed = 42
+    seed = seed
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
@@ -321,7 +320,7 @@ if __name__ == '__main__':
     
     # set device
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ['CUDA_VISIBLE_DEVICES'] = "7"
+    os.environ['CUDA_VISIBLE_DEVICES'] = cuda_idx
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     
     # set model
@@ -356,4 +355,20 @@ if __name__ == '__main__':
     
     train_extractor(model, device, train_loader, val_loader, test_loader, optimizer, lr_scheduler, loss_fn, num_epochs, num_classes, experiment_tag, val_interval)
     
+
+if __name__ == '__main__':
     
+    trian('class3-crop56-5', cuda_idx="1", seed=43, lr=1e-3, num_classes=3, num_epochs=100, val_interval=1)
+    trian('class3-crop56-6', cuda_idx="1", seed=44, lr=1e-3, num_classes=3, num_epochs=100, val_interval=1)
+    trian('class3-crop56-7', cuda_idx="1", seed=45, lr=1e-3, num_classes=3, num_epochs=100, val_interval=1)
+    trian('class3-crop56-8', cuda_idx="1", seed=46, lr=1e-3, num_classes=3, num_epochs=100, val_interval=1)
+    trian('class3-crop56-9', cuda_idx="1", seed=47, lr=1e-3, num_classes=3, num_epochs=100, val_interval=1)
+    trian('class3-crop56-10', cuda_idx="1", seed=48, lr=1e-3, num_classes=3, num_epochs=100, val_interval=1)
+    trian('class3-crop56-11', cuda_idx="1", seed=49, lr=1e-3, num_classes=3, num_epochs=100, val_interval=1)
+    trian('class3-crop56-12', cuda_idx="1", seed=50, lr=1e-3, num_classes=3, num_epochs=100, val_interval=1)
+    trian('class3-crop56-13', cuda_idx="1", seed=1, lr=1e-3, num_classes=3, num_epochs=100, val_interval=1)
+    trian('class3-crop56-14', cuda_idx="1", seed=2, lr=1e-3, num_classes=3, num_epochs=100, val_interval=1)
+    trian('class3-crop56-15', cuda_idx="1", seed=3, lr=1e-3, num_classes=3, num_epochs=100, val_interval=1)
+    trian('class3-crop56-16', cuda_idx="1", seed=4, lr=1e-3, num_classes=3, num_epochs=100, val_interval=1)
+    trian('class3-crop56-17', cuda_idx="1", seed=5, lr=1e-3, num_classes=3, num_epochs=100, val_interval=1)
+
