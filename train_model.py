@@ -208,8 +208,10 @@ def test_and_generate_cams(model:Optional[BasicNet or nn.Module],
             
             if cams is None:
                 cams = torch.cat((images, masks, batch_cams), dim=1)
+                # cams = batch_cams
             else:
                 cams = torch.cat((cams, torch.cat((images, masks, batch_cams), dim=1)), dim=0)
+                # cams = torch.cat((cams, batch_cams), dim=0)
             '''
             for i in range(test_loader.batch_size):
                 result_path = os.path.join(cam_results_folder, image_ids+'.pt')

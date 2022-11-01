@@ -117,9 +117,18 @@ class BagCAMs(_BaseWrapper):
 
         ##Calculate BagCAMs
         term_2 = grads*features
-        term_1 = grads*features + 1
-        term_1 = F.adaptive_avg_pool2d(term_1, 1) #sum_m
+        # term_1 = grads*features + 1 # old old版本相当于先对所有分类器求平均，在与特征相乘的时候只用了对应位置的分类器
+        # term_1 = F.adaptive_avg_pool2d(term_1, 1) #sum_m # old
+        
+        #grads: B * C * H * W # 相当于在特征图的每个Channel上有 H * W 个分类器 如果先做了avg_pool 那么相当于每个通道
+        #feature: B * C * H * W
+        
+        # term_1 = F.adaptive_avg_pool2d()
+        
+        term_1 = F.adaptive_avg_pool2d( (F.adaptive_avg_pool2d(grads, 1)*features + 1) , 1) # 尝试改成新版本，之前是只用了对应位置的分类器，现在希望对分类器加一个权重相加，目前写在这里的相当于是平均加权
         bagcams = torch.relu(torch.mul(term_1, term_2)).sum(dim=1, keepdim=True) #sum_c
+
+        
 
         ##Upsampling to Original Size of Images
         bagcams = F.interpolate(
