@@ -48,12 +48,12 @@ def visulization_cams(model:BasicNet,
     # generate cams
     cams = test_and_generate_cams(model, device, test_loader, num_classes, checkpoint_path, return_cams, target_layer).cpu() # Size (N, 3, H, W) min-max: 0.-1.
     '''print(cams.size())
-    torch.save(cams, os.path.join(vis_folder, 'olf_cams.pt'))
+    torch.save(cams, os.path.join(vis_folder, 'images.pt'))
     return 0.'''
     img_nums = cams.size(0)
     
     mIoU = 0.
-    threshold = 0.5
+    threshold = 0.2
     
     for i in range(img_nums):
         img_i = cams[i][0].numpy()
@@ -61,17 +61,18 @@ def visulization_cams(model:BasicNet,
         cam_i = cams[i][2].numpy()
         
         # add threshold before blur
-        cam_i = np.where(cam_i>0.4, cam_i, 0)
+        # cam_i = np.where(cam_i>0.4, cam_i, 0)
         
         # add blur on layer1 cam
-        if target_layer == 'layer1':
-            cam_i = cv2.blur(cam_i, (5,5))
+        '''if target_layer == 'layer1':
+            cam_i = cv2.blur(cam_i, (5,5))'''
         
         # add threshold after blur
-        cam_i = np.where(cam_i>threshold, cam_i, 0)
-        
+        # cam_i_threshold = np.where(cam_i>threshold, 1, 0) 
+        cam_i_threshold = np.where((np.where(img_i>0.1, 1, 0) * cam_i)>threshold, 1, 0) # supress with input
+
         # cal iou
-        mIoU += iou_numpy(np.where(cam_i>0, 1, 0), mask_i)
+        mIoU += iou_numpy(cam_i_threshold, mask_i)
         
         # generate heat map
         heat_img = cam_i*255
@@ -84,6 +85,7 @@ def visulization_cams(model:BasicNet,
         img_i = (np.concatenate((img_i, img_i, img_i), axis=2) * 255).astype(np.uint8)
         
         mask_i = np.expand_dims(mask_i, axis=2)
+        cam_i_threshold = (np.concatenate((mask_i, np.expand_dims(cam_i_threshold, axis=2).astype(np.uint8), mask_i), axis=2) * 255).astype(np.uint8)
         mask_i = (np.concatenate((mask_i, mask_i, mask_i), axis=2) * 255).astype(np.uint8)
         
         img_add = cv2.addWeighted(img_i, 0.5, heat_img, 0.5, 0)
@@ -93,7 +95,8 @@ def visulization_cams(model:BasicNet,
         # plt.imsave(os.path.join(vis_folder, '{:04d}_heatmap.png'.format(i)), cv2.resize(heat_img, (256, 256)))
         # plt.imsave(os.path.join(vis_folder, '{:04d}_img_add.png'.format(i)), cv2.resize(img_add, (256, 256)))
         plt.imsave(os.path.join(vis_folder, '{:04d}_all.png'.format(i)), 
-                    np.concatenate((cv2.resize(img_i, (64, 64)), cv2.resize(heat_img, (64, 64)), cv2.resize(mask_i, (64, 64)), cv2.resize(img_add, (64, 64))), axis=1))
+                    np.concatenate((cv2.resize(img_i, (64, 64)), cv2.resize(heat_img, (64, 64)), cv2.resize(cam_i_threshold, (64, 64)),
+                    cv2.resize(mask_i, (64, 64)), cv2.resize(img_add, (64, 64))), axis=1))
 
     mIoU = mIoU / img_nums
     
@@ -129,9 +132,13 @@ def suppressCMAs(vis_folder:str,
     coe = [c/sum(coe) for c in coe]
     cam_list = [torch.load(os.path.join(cam_root, layer, 'olf_cams.pt')) for layer in target_layers]
     
-    masks = torch.load('saved_checkpoints/masks.pt')
-    images = torch.load('saved_checkpoints/images.pt')
-    suppressed_cam = weighted_sum(coe, cam_list)
+    masks = torch.load('saved_checkpoints/masks_56.pt')
+    images = torch.load('saved_checkpoints/images_56.pt')
+    # suppressed_cam = weighted_sum(coe, cam_list)
+    
+    # 尝试layer2首先定位，然后原始输入卡一下背景非骨化块抑制，然后乘上layer1的原始cam， 最后卡一个阈值进行后处理
+    suppressed_cam = cam_list[0] * torch.where(cam_list[1]>0.4, torch.ones(1), cam_list[1]) * torch.where(images>0.1, torch.ones(1), torch.zeros(1))
+    
     
     # cal iou
     img_nums = suppressed_cam.size(0)
@@ -144,7 +151,12 @@ def suppressCMAs(vis_folder:str,
         f.write(target_layers)
         f.write('\n')'''
         f.write('miou: {}'.format(mIoU))
-    # val cams
+    # visulize cams
+    heat_bar = np.zeros([10, 255, 1]).astype(np.uint8)
+    for i in range(255):
+        heat_bar[:, i, :] = i
+    heat_bar = cv2.applyColorMap(heat_bar, cv2.COLORMAP_JET)
+    heat_bar = cv2.cvtColor(heat_bar, cv2.COLOR_BGR2RGB)
     for i in range(img_nums):
         img_i = images[i].squeeze().numpy()
         mask_i = masks[i].squeeze().numpy()
@@ -170,9 +182,13 @@ def suppressCMAs(vis_folder:str,
         # plt.imsave(os.path.join(vis_folder, '{:04d}_mask.png'.format(i)), cv2.resize(mask_i, (256, 256)))
         # plt.imsave(os.path.join(vis_folder, '{:04d}_heatmap.png'.format(i)), cv2.resize(heat_img, (256, 256)))
         # plt.imsave(os.path.join(vis_folder, '{:04d}_img_add.png'.format(i)), cv2.resize(img_add, (256, 256)))
-        plt.imsave(os.path.join(vis_folder, '{:04d}_all.png'.format(i)), 
-                    np.concatenate((cv2.resize(img_i, (64, 64)), cv2.resize(heat_img, (64, 64)), cv2.resize(cam_threshold_i, (64, 64)), cv2.resize(mask_i, (64, 64)), cv2.resize(img_add, (64, 64))), axis=1))
- 
+        
+        all_images = np.concatenate((cv2.resize(img_i, (64, 64)), cv2.resize(heat_img, (64, 64)), cv2.resize(cam_threshold_i, (64, 64)), cv2.resize(mask_i, (64, 64)), cv2.resize(img_add, (64, 64))), axis=1)
+        heat_bar = cv2.resize(heat_bar, (64*5, 10))
+        all_images = np.concatenate((heat_bar, all_images), axis=0)
+        plt.imsave(os.path.join(vis_folder, '{:04d}_all.png'.format(i)), all_images)
+    return mIoU
+
 def main(target_layer:str, checkpoint_path:str, device_idx:int, num_classes:int):
     
     num_classes = num_classes
@@ -212,8 +228,8 @@ if __name__ == '__main__':
     
     num_classes = 3
     target_layers = ['layer1', 'layer2', 'layer3', 'layer4']    
-    checkpoint_path = 'saved_checkpoints/class_3_train_model-1e-3/val-best-28.pt'
-    device_idx = 1
+    checkpoint_path = 'saved_checkpoints/crop56**/val-best-16.pt'
+    device_idx = 6
     
     
     '''for target_layer in target_layers:
@@ -221,11 +237,18 @@ if __name__ == '__main__':
         main(target_layer, checkpoint_path, device_idx, num_classes)'''
 
     threshold_list = [0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8]
-    
+    vis_folder = 'saved_checkpoints/crop56**/layer2_localization+layer1_fine-grain'
+    # vis_folder = 'saved_checkpoints/crop56**/test'
+    if not os.path.exists(vis_folder):
+        os.makedirs(vis_folder)
+    f= open(os.path.join(vis_folder, 'results.txt'), 'a+')
     for threshold in threshold_list:
         print(f"\nthreshold: {threshold}")
-        suppressCMAs(vis_folder='saved_checkpoints/class_3_train_model-1e-3/supress_vis_l1.012l1_1112',
-                    cam_root='saved_checkpoints/class_3_train_model-1e-3/cams',
+        mIoU = suppressCMAs(vis_folder=vis_folder,
+                    cam_root='saved_checkpoints/crop56**/cams_root',
                     threshold=threshold,
-                    coe=[5,5,5,10],
-                    target_layers=['layer1.0', 'layer1.1', 'layer1.2', 'layer1'])
+                    coe=[1,0],
+                    target_layers=['layer2', 'layer1'])
+        f.write('threshold: {} -- mIoU: {:.4f}\n'.format(threshold, mIoU))
+        f.flush()
+    f.close()
